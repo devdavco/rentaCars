@@ -3,32 +3,26 @@ package com.rentacars.service.impl;
 
 import com.rentacars.dto.request.*;
 import com.rentacars.dto.response.CreateAutoResponse;
-import com.rentacars.dto.response.UpdateAutoResponse;
+import com.rentacars.dto.response.CreateDetalleAutoResponse;
 import com.rentacars.exception.BadRequestException;
 import com.rentacars.exception.ResourceNotFoundException;
 import com.rentacars.mapper.AutoMapper;
 import com.rentacars.model.Auto;
-import com.rentacars.model.Detalle_auto;
+import com.rentacars.model.DetalleAuto;
 import com.rentacars.repository.AutoRepository;
 import com.rentacars.repository.Detalle_autoRepository;
 import com.rentacars.service.AutoService;
 import com.rentacars.service.CategoriaService;
 import com.rentacars.service.TiendaService;
 import lombok.RequiredArgsConstructor;
-import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.rentacars.dto.response.CreateDetalle_autoResponse;
 
 // repo para chequear alquileres
 import com.rentacars.repository.AlquilerRepository;
 
 import java.util.List;
 
-
-import java.util.List;
-
-import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class AutoServiceImpl implements AutoService {
@@ -44,24 +38,14 @@ public class AutoServiceImpl implements AutoService {
 
 
 
-    //obtiene lista autos
-    @Override
-    public List<CreateAutoResponse> getAllAutos() {
-
-        List<Auto> autos = autoRepository.findAll();
-        List<CreateAutoResponse> createAutoResponseList = AutoMapper.entityToListCreateAutoResponse(autos);
-        return createAutoResponseList;
-
-    }
-  
-    //HU-09  
+    //HU-09
   @Override
     public List<CreateAutoResponse> buscarAutos(String ciudad, Long idCategoria) {
         List<Auto> autos = autoRepository.buscarDisponibles(ciudad, idCategoria);
 
         return autos.stream()
                 .map(auto -> {
-                    Detalle_auto detalle = detalleAutoRepository.findByIdAuto(auto.getIdAuto())
+                    DetalleAuto detalle = detalleAutoRepository.findByIdAuto(auto.getIdAuto())
                             .orElseThrow(() -> new ResourceNotFoundException(
                                     "Detalle no encontrado para auto ID: " + auto.getIdAuto()));
 
@@ -80,11 +64,11 @@ public class AutoServiceImpl implements AutoService {
     //HU-10
     @Override
     @Transactional
-    public CreateAutoResponse actualizarDetalles(Long id, UpdateDetalle_autoRequest request) {
+    public CreateAutoResponse actualizarDetalles(Long id, UpdateDetalleAutoRequest request) {
         Auto auto = autoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Auto no encontrado con ID: " + id));
 
-        Detalle_auto detalle = detalleAutoRepository.findByIdAuto(id)
+        DetalleAuto detalle = detalleAutoRepository.findByIdAuto(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Detalle no encontrado para auto ID: " + id));
 
         if (request.getPrecioDia() != null) {
@@ -97,7 +81,7 @@ public class AutoServiceImpl implements AutoService {
             detalle.setImagen(request.getImagen());
         }
 
-        Detalle_auto detalleGuardado = detalleAutoRepository.save(detalle);
+        DetalleAuto detalleGuardado = detalleAutoRepository.save(detalle);
 
         CreateAutoResponse response = new CreateAutoResponse();
         response.setIdAuto(auto.getIdAuto());
@@ -130,12 +114,12 @@ public class AutoServiceImpl implements AutoService {
 
     // HU-12 (Cardona): obtiene el detalle completo del auto (autos + detalles_autos), con precio calculado
     @Override
-    public CreateDetalle_autoResponse getAutoById(Long id) {
+    public CreateDetalleAutoResponse getAutoById(Long id) {
 
         Auto auto = autoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Auto no encontrado con id " + id));
 
-        Detalle_auto detalle = detalleAutoRepository.findByIdAuto(id)
+        DetalleAuto detalle = detalleAutoRepository.findByIdAuto(id)
                 .orElseThrow(() -> new ResourceNotFoundException("No se encontraron detalles para el auto con id " + id));
 
         return AutoMapper.entityToCreateDetalle_autoResponse(auto, detalle);
@@ -160,62 +144,11 @@ public class AutoServiceImpl implements AutoService {
         Auto auto = AutoMapper.createAutoRequestToEntity(createAutoRequest);
         auto = autoRepository.save(auto);
 
-        Detalle_auto detalle = AutoMapper.createAutoRequestToDetalleEntity(createAutoRequest, auto.getIdAuto());
+        DetalleAuto detalle = AutoMapper.createAutoRequestToDetalleEntity(createAutoRequest, auto.getIdAuto());
         detalle = detalleAutoRepository.save(detalle);
 
         return AutoMapper.entityToCreateAutoResponseConDetalle(auto, detalle);
     }
-
-    //metodo para actualizar atributos
-    @Override
-    public UpdateAutoResponse updateAuto(Long id, UpdateAutoRequest updateAutoRequest) throws Exception {
-
-        try {
-
-
-            // Validar id no nulo
-            if (id == null){
-                throw new Exception("El objeto Auto debe existir");
-            }
-
-
-            //valida request no nulo
-            if (updateAutoRequest == null){
-                throw new Exception("El objeto UpdateAutoRequest no puede ser nulo");
-            }
-
-            //busca auto por id
-            Auto auto = autoRepository.findById(id).orElseThrow(() -> new RuntimeException("Auto not found with id; " + id));
-
-            //actualiza disponibilidad
-            if (updateAutoRequest.getDisponibilidad() != null) {
-                auto.setDisponibilidad(updateAutoRequest.getDisponibilidad());
-            }
-
-            //actualiza tienda
-            if (updateAutoRequest.getIdTienda() != null) {
-                auto.setIdTienda(updateAutoRequest.getIdTienda());
-            }
-
-            //actualiza categoria
-            if (updateAutoRequest.getIdCategoria() != null) {
-                auto.setIdCategoria(updateAutoRequest.getIdCategoria());
-            }
-
-            //guarda entidad actualizada
-            auto = autoRepository.save(auto);
-
-            //convierte a update response
-            UpdateAutoResponse response = AutoMapper.entityToUpdateAutoResponse(auto);
-
-            //retorna dto
-            return response;
-
-        } catch (Exception e) {
-            throw e;
-        }
-    }
-
 
     //metodo para eliminar auto
     // HU-13 (Cardona): borra detalle y auto en cascada

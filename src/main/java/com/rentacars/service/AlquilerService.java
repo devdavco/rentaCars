@@ -2,8 +2,6 @@ package com.rentacars.service;
 
 import com.rentacars.dto.request.CreateAlquilerRequest;
 import com.rentacars.dto.response.CreateAlquilerResponse;
-import com.rentacars.dto.request.UpdateAlquilerRequest;
-import com.rentacars.dto.response.UpdateAlquilerResponse;
 
 import java.util.List;
 
@@ -29,19 +27,8 @@ public interface AlquilerService {
     // HU-24 (Corrales): cierra el alquiler y libera el auto -- implementado por Claude
     CreateAlquilerResponse registrarDevolucion(Long id);
 
-    //get all
-    List<CreateAlquilerResponse> getAllAlquileres();
-
     //get by id
     CreateAlquilerResponse getAlquilerById(Long id);
-
-    //put
-    UpdateAlquilerResponse updateAlquiler(Long id, UpdateAlquilerRequest updateAlquilerRequest) throws Exception;
-
-    /*
-    //delete
-    void deleteAlquiler(Long id) throws Exception;
-    */
 
     //delete
     // HU-22 (Cardona): cancela alquiler y libera el auto

@@ -16,7 +16,7 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class CreateDetalle_autoResponse {
+public class CreateDetalleAutoResponse {
 
     private Long idAuto;
     private String modelo;

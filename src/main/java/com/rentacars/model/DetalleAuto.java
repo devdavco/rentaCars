@@ -50,7 +50,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Detalle_auto {
+public class DetalleAuto {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

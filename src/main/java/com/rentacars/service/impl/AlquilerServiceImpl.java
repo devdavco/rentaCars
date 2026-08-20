@@ -3,16 +3,12 @@ package com.rentacars.service.impl;
 import com.rentacars.dto.request.CreateAlquilerRequest;
 import com.rentacars.dto.request.UpdateAutoRequest;
 import com.rentacars.dto.response.CreateAlquilerResponse;
-import com.rentacars.dto.response.CreateDetalle_autoResponse;
-import com.rentacars.dto.response.UpdateAlquilerResponse;
-import com.rentacars.dto.request.UpdateAlquilerRequest;
+import com.rentacars.dto.response.CreateDetalleAutoResponse;
 import com.rentacars.exception.BadRequestException;
 import com.rentacars.exception.ResourceNotFoundException;
 import com.rentacars.mapper.AlquilerMapper;
 import com.rentacars.model.Alquiler;
-import com.rentacars.model.Auto;
 import com.rentacars.repository.AlquilerRepository;
-import com.rentacars.repository.AutoRepository;
 import com.rentacars.service.AlquilerService;
 import com.rentacars.service.AutoService;
 import com.rentacars.service.ClienteService;
@@ -31,7 +27,6 @@ import java.util.List;
 public class AlquilerServiceImpl implements AlquilerService {
 
     private final AlquilerRepository alquilerRepository;
-    private final AutoRepository autoRepository;
 
     // llama actualizarDisponibilidad al cancelar, y al crear/devolver un alquiler
     private final AutoService autoService;
@@ -39,21 +34,12 @@ public class AlquilerServiceImpl implements AlquilerService {
     // HU-18 (Pedroza): valida que el cliente exista -- implementado por Claude
     private final ClienteService clienteService;
 
-    //obtiene lista alquileres
-    @Override
-    public List<CreateAlquilerResponse> getAllAlquileres() {
-
-        List<Alquiler> alquileres = alquilerRepository.findAll();
-        List<CreateAlquilerResponse> createAlquilerResponseList = AlquilerMapper.entityToListCreateAlquilerResponse(alquileres);
-        return createAlquilerResponseList;
-
-    }
-
     //obtiene alquiler segun id
     @Override
     public CreateAlquilerResponse getAlquilerById(Long id) {
 
-        Alquiler alquiler = alquilerRepository.findById(id).orElseThrow(() -> new RuntimeException("El ID:  " + id + " .No es valido"));
+        Alquiler alquiler = alquilerRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Alquiler no encontrado con id " + id));
         CreateAlquilerResponse createAlquilerResponse = AlquilerMapper.entityToCreateAlquilerResponse(alquiler);
         return createAlquilerResponse;
     }
@@ -74,7 +60,7 @@ public class AlquilerServiceImpl implements AlquilerService {
 
         clienteService.obtenerCliente(createAlquilerRequest.getIdCliente());
 
-        CreateDetalle_autoResponse auto = autoService.getAutoById(createAlquilerRequest.getIdAuto());
+        CreateDetalleAutoResponse auto = autoService.getAutoById(createAlquilerRequest.getIdAuto());
 
         if (!Boolean.TRUE.equals(auto.getDisponibilidad())) {
             throw new BadRequestException("El auto no esta disponible");
@@ -104,7 +90,7 @@ public class AlquilerServiceImpl implements AlquilerService {
         alquiler = alquilerRepository.save(alquiler);
 
         // marca el auto como no disponible, ahora que quedo reservado
-        autoService.actualizarDisponibilidad(createAlquilerRequest.getIdAuto(), new UpdateAutoRequest(false, null, null));
+        autoService.actualizarDisponibilidad(createAlquilerRequest.getIdAuto(), new UpdateAutoRequest(false));
 
         return AlquilerMapper.entityToCreateAlquilerResponse(alquiler);
     }
@@ -116,10 +102,10 @@ public class AlquilerServiceImpl implements AlquilerService {
         return AlquilerMapper.entityToListCreateAlquilerResponse(alquileres);
     }
 
-    // HU-21 (Pedroza): alquileres con estado ACTIVO -- implementado por Claude
+    // HU-21 (Pedroza): activo = estado ACTIVO y fecha_fin >= hoy (regla del backlog)
     @Override
     public List<CreateAlquilerResponse> listarActivos() {
-        List<Alquiler> activos = alquilerRepository.findByEstado("ACTIVO");
+        List<Alquiler> activos = alquilerRepository.findByEstadoAndFechaFinGreaterThanEqual("ACTIVO", LocalDate.now());
         return AlquilerMapper.entityToListCreateAlquilerResponse(activos);
     }
 
@@ -135,118 +121,10 @@ public class AlquilerServiceImpl implements AlquilerService {
         alquiler.setEstado("CERRADO");
         alquiler = alquilerRepository.save(alquiler);
 
-        autoService.actualizarDisponibilidad(alquiler.getIdAuto(), new UpdateAutoRequest(true, null, null));
+        autoService.actualizarDisponibilidad(alquiler.getIdAuto(), new UpdateAutoRequest(true));
 
         return AlquilerMapper.entityToCreateAlquilerResponse(alquiler);
     }
-
-    //metodo para actualizar atributos
-    @Override
-    public UpdateAlquilerResponse updateAlquiler(Long id, UpdateAlquilerRequest updateAlquilerRequest) throws Exception {
-
-        try {
-
-
-            // Validar id no nulo
-            if (id == null){
-                throw new Exception("El objeto Alquiler debe existir");
-            }
-
-
-            //valida request no nulo
-            if (updateAlquilerRequest == null){
-                throw new Exception("El objeto UpdateAlquilerRequest no puede ser nulo");
-            }
-
-            //busca alquiler por id
-            Alquiler alquiler = alquilerRepository.findById(id).orElseThrow(() -> new RuntimeException("Alquiler not found with id; " + id));
-
-            //actualiza cliente
-            if (updateAlquilerRequest.getIdCliente() != null) {
-                alquiler.setIdCliente(updateAlquilerRequest.getIdCliente());
-            }
-
-            //actualiza auto del alquiler
-            if (updateAlquilerRequest.getIdAuto() != null) {
-
-                //busca auto por id
-                Auto auto = autoRepository.findById(updateAlquilerRequest.getIdAuto())
-                        .orElseThrow(() -> new Exception(
-                                "No se encontro el auto con id " + updateAlquilerRequest.getIdAuto()
-                        ));
-
-                //asigna auto encontrado
-                alquiler.setIdAuto(auto.getIdAuto());
-            }
-
-            //actualiza fecha inicio
-            if (updateAlquilerRequest.getFechaInicio() != null) {
-                alquiler.setFechaInicio(updateAlquilerRequest.getFechaInicio());
-            }
-
-            //actualiza fecha fin
-            if (updateAlquilerRequest.getFechaFin() != null) {
-                alquiler.setFechaFin(updateAlquilerRequest.getFechaFin());
-            }
-
-            //actualiza precio total
-            if (updateAlquilerRequest.getPrecioTotal() != null) {
-                alquiler.setPrecioTotal(updateAlquilerRequest.getPrecioTotal());
-            }
-
-            //actualiza ciudad retirada
-            if (updateAlquilerRequest.getCiudadRetirada() != null) {
-                alquiler.setCiudadRetirada(updateAlquilerRequest.getCiudadRetirada());
-            }
-
-            //actualiza ciudad devolucion
-            if (updateAlquilerRequest.getCiudadDevolucion() != null) {
-                alquiler.setCiudadDevolucion(updateAlquilerRequest.getCiudadDevolucion());
-            }
-
-            //actualiza estado
-            if (updateAlquilerRequest.getEstado() != null) {
-                alquiler.setEstado(updateAlquilerRequest.getEstado());
-            }
-
-            //guarda entidad actualizada
-            alquiler = alquilerRepository.save(alquiler);
-
-            //convierte a update response
-            UpdateAlquilerResponse response = AlquilerMapper.entityToUpdateAlquilerResponse(alquiler);
-
-            //retorna dto
-            return response;
-
-        } catch (Exception e) {
-            throw e;
-        }
-    }
-
-    /*
-    //metodo para eliminar alquiler
-    @Override
-    public void deleteAlquiler(Long id) throws Exception {
-
-        try {
-
-            //valida id no nulo
-            if (id == null){
-                throw new Exception("El id del alquiler es requerido");
-            }
-
-            //busca alquiler por id
-            Alquiler alquiler = alquilerRepository.findById(id)
-                    .orElseThrow(() -> new RuntimeException("El ID:  " + id + " .No es valido"));
-
-            //elimina alquiler
-            alquilerRepository.delete(alquiler);
-
-        } catch (Exception e) {
-            throw e;
-        }
-    }
-    */
 
     //metodo para eliminar alquiler
     // HU-22 (Cardona): cancela y libera el auto
@@ -267,7 +145,7 @@ public class AlquilerServiceImpl implements AlquilerService {
         alquilerRepository.delete(alquiler);
 
         //arma datos para liberar auto
-        UpdateAutoRequest liberarAuto = new UpdateAutoRequest(true, null, null);
+        UpdateAutoRequest liberarAuto = new UpdateAutoRequest(true);
 
         //libera el auto tras cancelar
         autoService.actualizarDisponibilidad(alquiler.getIdAuto(), liberarAuto);

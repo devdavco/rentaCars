@@ -8,7 +8,7 @@ import java.math.BigDecimal;
 
 @Getter
 @Setter
-public class UpdateDetalle_autoRequest {
+public class UpdateDetalleAutoRequest {
 
     private BigDecimal precioDia;
     private BigDecimal ofertaPorcentaje;
