@@ -48,7 +48,7 @@ WORKDIR /app
 
 # Copia el JAR generado por Maven al contenedor
 # Ajusta el nombre según tu pom.xml (artifactId + version)
-COPY target/nombre-del-proyecto-0.0.1-SNAPSHOT.jar app.jar
+COPY target/rentacars-0.0.1-SNAPSHOT.jar app.jar
 
 # Puerto que expone la aplicación (ajusta si usas otro)
 EXPOSE 8080
@@ -83,7 +83,7 @@ Esto reduce el tamaño del contexto y acelera el proceso de construcción de la 
 Con Docker Desktop corriendo, ejecuta desde la raíz del proyecto:
 
 ```bash
-docker build -t nombre-microservicio:1.0 .
+docker build -t rentacars-microservicio:2.0 . 
 ```
 
 | Parte | Descripción |
@@ -102,7 +102,8 @@ docker images
 ## Paso 5 — Ejecutar el contenedor
 
 ```bash
-docker run -d -p 8080:8080 --name mi-microservicio nombre-microservicio:1.0
+# docker run -d -p 8080:8080 --name mi-microservicio nombre-microservicio:1.0
+docker run -d -p 8080:8080 -e SPRING_DATASOURCE_URL=jdbc:postgresql://host.docker.internal:5433/alquilerautos_db --name claude-microservicio rentacars-microservicio:2.0
 ```
 
 | Flag | Descripción |
